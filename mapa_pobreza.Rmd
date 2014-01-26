@@ -1,0 +1,70 @@
+Mapa de la pobreza
+========================================================
+
+```{r}
+library(maptools)
+library(ggplot2)
+library(plyr)
+library(rgdal)
+```
+
+```{r}
+load("./data/pobreza.Rda")
+```
+
+```{r}
+#colmap <- readShapePoly(fn="./mapas_colombia/COL_adm1.shp")
+colmap <- readOGR(dsn="./otro_mapa/", layer="COL_adm1")
+colmapdf <- fortify(colmap)
+```
+
+```{r fig.width=12, fig.height=15}
+
+th <- theme(axis.text.x = element_blank(), 
+            axis.text.y = element_blank(), 
+            axis.ticks= element_blank(),
+            axis.title=element_blank(),
+            panel.grid.major=element_blank(), 
+            panel.grid.minor=element_blank(), 
+            plot.background=element_blank(), 
+             panel.background=element_blank()
+#             panel.border=element_blank()
+            )
+
+m <- ggplot(data=colmapdf)
+m <- m + geom_path(aes(x=long, y=lat, group=group), color="grey") + coord_equal() +th
+m <- m + geom_point(aes(x = Longitud, y = Latitud, color = NivelesIncidencia), data = pobreza, alpha = .9)
+m <- m + scale_colour_discrete(name = "Incidencia de\n Pobreza", labels=c("<36%", "36%<x<57%", "57%<x<78%", ">78%"))
+m
+```
+
+
+```{r}
+
+
+colmap@data$id <- rownames(colmap@data)
+departamentos.df <- fortify(colmap)
+departamentos.df <- join(departamentos.df, colmap@data, by="id")
+#departamentos.df$NAME_1 <- mapvalues(departamentos.df$NAME_1, from=c("Atl\xe1ntico", "Choc\xf3", "C\xf3rdoba", "Vaup\xe9s", "Bol\xedvar", "San Andr\xe9s y Providencia", "Boyac\xe1", "Caquet\xe1", "Guain\xeda","Nari\xf1o", "Quind\xedo"), to =c("Atlántico", "Chocó", "Córdoba", "Vaupés", "Bolívar", "San Andrés y Providencia", "Boyacá", "Caquetá", "Guainía","Nariño", "Quindío"))
+pobreza_depto <- ddply(pobreza,~Departamento,summarise,mean=mean(Incidencia))
+pobreza_depto$Departamento <- mapvalues(pobreza_depto$Departamento, from = c("C/marca.", "Norte de Sant.", "San Andrés, Prov. y Sta Cat.", "Valle", "Guajira"), to=c("Cundinamarca", "Norte de Santander", "San Andrés y Providencia", "Valle del Cauca", "La Guajira"))
+pobreza_depto <- pobreza_depto[-5,]
+
+departamentos.df <- merge(departamentos.df, pobreza_depto, by.x="NAME_1", by.y="Departamento", all.x=T, all.y=F)
+```
+
+
+```{r fig.width=12, fig.height=15}
+
+mapa_pobreza <- ggplot(data=departamentos.df, aes(x=long, y=lat, group=group)) + th
+mapa_pobreza <- mapa_pobreza + geom_polygon(aes(fill=mean))
+mapa_pobreza <- mapa_pobreza + geom_path(color="white", linestyle=2, aes(group=group))
+mapa_pobreza <- mapa_pobreza + coord_equal()
+mapa_pobreza <- mapa_pobreza + scale_fill_gradient(name="Promedio de incidencia\nde pobreza por\ndepartamento",
+                                                   low="#ffffcc", high="#ff4444", 
+                                                    space="Lab", na.value="grey50",
+                                                    guide="colourbar")
+mapa_pobreza <- mapa_pobreza + labs(title="Pobreza por departamento")
+
+mapa_pobreza
+```
