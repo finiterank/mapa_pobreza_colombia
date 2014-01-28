@@ -18,6 +18,8 @@ colmap <- readOGR(dsn="./otro_mapa/", layer="COL_adm1")
 colmapdf <- fortify(colmap)
 ```
 
+## Por municipios
+
 ```{r fig.width=12, fig.height=15}
 
 th <- theme(axis.text.x = element_blank(), 
@@ -36,7 +38,11 @@ m <- m + geom_path(aes(x=long, y=lat, group=group), color="grey") + coord_equal(
 m <- m + geom_point(aes(x = Longitud, y = Latitud, color = NivelesIncidencia), data = pobreza, alpha = .9)
 m <- m + scale_colour_discrete(name = "Incidencia de\n Pobreza", labels=c("<36%", "36%<x<57%", "57%<x<78%", ">78%"))
 m
+
+ggsave("./figure/mapa_municipios.png", m, width=12, height=15)
 ```
+
+## Por departamento
 
 
 ```{r}
@@ -67,4 +73,83 @@ mapa_pobreza <- mapa_pobreza + scale_fill_gradient(name="Promedio de incidencia\
 mapa_pobreza <- mapa_pobreza + labs(title="Pobreza por departamento")
 
 mapa_pobreza
+
+ggsave("./figure/mapa_departamentos.png", mapa_pobreza, width=12, height=15)
+```
+
+## Otra versión del mapa de municipios
+
+```{r}
+deptos <- readOGR(dsn="./depto/", layer="depto")
+levels(deptos@data$DPTO) <- as.numeric(levels(deptos@data$DPTO))
+deptos@data$id <- rownames(deptos@data)
+deptos.df <- fortify(deptos)
+
+municipios <- readOGR(dsn="./mpio/", layer="mpio")
+municipios@data$id <- rownames(municipios@data)
+municipios@data$codigo_municipio <- as.numeric(gsub(" ", "", paste(municipios@data$DPTO, municipios@data$MPIO)))
+municipios.data <- merge(municipios@data, pobreza, by.x="codigo_municipio", by.y="Código.Municipio", all.x=T, all.y=F)
+municipios.df <- fortify(municipios)
+municipios.df <- join(municipios.df, municipios.data, by="id")
+```
+
+```{r}
+p <- ggplot(data=municipios.df, aes(x=long, y=lat, group=group)) + coord_equal() + th
+p <- p + geom_path(color="white")
+p <- p + geom_polygon(aes(fill=Incidencia))
+p <- p + scale_fill_gradient(name="Incidencia de Pobreza",
+                               low="#7c0c0c", high="#9d9999", 
+                               space="Lab", na.value="grey90",
+                               guide="colourbar")
+p <- p + geom_path(color="white", data=deptos.df, size= 0.1,  aes(x=long, y=lat, group=group))
+p
+```
+
+```{r}
+antioquia.df <- subset(municipios.df, municipios.df$DPTO == "05")
+cundinamarca.df<-subset(municipios.df, municipios.df$DPTO == "25")
+valle.df<-subset(municipios.df, municipios.df$DPTO == "76")
+```
+
+```{r}
+pa <- ggplot(data=antioquia.df, aes(x=long, y=lat, group=group)) + coord_equal() + th
+pa <- pa + geom_path(color="white")
+pa <- pa + geom_polygon(aes(fill=Incidencia))
+pa <- pa + scale_fill_gradient(name="Incidencia de Pobreza",
+                               low="#7c0c0c", high="#9d9999", 
+                               space="Lab", na.value="grey90",
+                               guide="colourbar")
+#p <- p + geom_path(color="white", data=deptosdf, size= 0.1,  aes(x=long, y=lat, group=group))
+pa
+```
+
+```{r}
+pc <- ggplot(data=cundinamarca.df, aes(x=long, y=lat, group=group)) + coord_equal() + th
+pc <- pc + geom_path(color="white")
+pc <- pc + geom_polygon(aes(fill=Incidencia))
+pc <- pc + scale_fill_gradient(name="Incidencia de Pobreza",
+                               low="#7c0c0c", high="#9d9999", 
+                               space="Lab", na.value="grey90",
+                               guide="colourbar")
+#p <- p + geom_path(color="white", data=deptosdf, size= 0.1,  aes(x=long, y=lat, group=group))
+pc
+```
+
+```{r}
+pv <- ggplot(data=valle.df, aes(x=long, y=lat, group=group)) + coord_equal() + th
+pv <- pv + geom_path(color="white")
+pv <- pv + geom_polygon(aes(fill=Incidencia))
+pv <- pv + scale_fill_gradient(name="Incidencia de Pobreza",
+                               low="#7c0c0c", high="#9d9999", 
+                               space="Lab", na.value="grey90",
+                               guide="colourbar")
+#p <- p + geom_path(color="white", data=deptosdf, size= 0.1,  aes(x=long, y=lat, group=group))
+pv
+```
+
+```{r}
+ggsave("./figure/pobreza_municipios_valle.png", pv, width=15, height=15)
+ggsave("./figure/pobreza_municipios_cundinamarca.png", pc, width=15, height=15)
+ggsave("./figure/pobreza_municipios_antioquia.png", pa, width=15, height=15)
+ggsave("./figure/pobreza_municipios.png", p, width=12, height=15)
 ```
