@@ -2,6 +2,7 @@ Mapa de la pobreza
 ========================================================
 
 ```{r}
+library(gridExtra)
 library(maptools)
 library(ggplot2)
 library(plyr)
@@ -80,6 +81,7 @@ ggsave("./figure/mapa_departamentos.png", mapa_pobreza, width=12, height=15)
 ## Otra versión del mapa de municipios
 
 ```{r}
+# Estos shapefiles son mejores que los que usé en el mapa de arriba. 
 deptos <- readOGR(dsn="./depto/", layer="depto")
 levels(deptos@data$DPTO) <- as.numeric(levels(deptos@data$DPTO))
 deptos@data$id <- rownames(deptos@data)
@@ -152,4 +154,9 @@ ggsave("./figure/pobreza_municipios_valle.png", pv, width=15, height=15)
 ggsave("./figure/pobreza_municipios_cundinamarca.png", pc, width=15, height=15)
 ggsave("./figure/pobreza_municipios_antioquia.png", pa, width=15, height=15)
 ggsave("./figure/pobreza_municipios.png", p, width=12, height=15)
+```
+
+```{r}
+tres <- arrangeGrob(pa,pc,pv, nrow=3)
+ggsave("./figure/tres_departamentos.png", tres, width=12, height=36)
 ```
